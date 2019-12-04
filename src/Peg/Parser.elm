@@ -1,8 +1,8 @@
 module Peg.Parser exposing
   ( Parser
   , parse
-  , return
   , flatMap
+  , return
   , fail
   , map
   , seq2
@@ -12,10 +12,15 @@ module Peg.Parser exposing
   , oneOrMore
   , seq3
   , seq4
-  , consume
+  , seq5
+  , match
   , char
   , chars
+  , ws
+  , wss
+  , int
   )
+
 
 type ParseResult a
   = Success Int a
@@ -23,6 +28,7 @@ type ParseResult a
 
 type Parser a
   = Parser (Int -> String -> ParseResult a)
+
 
 parse : String -> Parser a -> Maybe a
 parse source (Parser p) =
@@ -33,15 +39,6 @@ parse source (Parser p) =
       else Nothing
 
     Failed -> Nothing
-
-{-| This `Parser` alway succeeds on parse and results in the given argument
-without consumption.
--}
-return : a -> Parser a
-return a =
-  Parser (\begin source ->
-    Success begin a
-  )
 
 
 flatMap : (a -> Parser b) -> Parser a -> Parser b
@@ -57,6 +54,16 @@ flatMap f (Parser p) =
   )
 
 
+{-| This `Parser` alway succeeds on parse and results in the given argument
+without consumption.
+-}
+return : a -> Parser a
+return a =
+  Parser (\begin source ->
+    Success begin a
+  )
+
+
 {-| This `Parser` alway fails on parse, in other words "mzero".
 -}
 fail : Parser a
@@ -68,20 +75,16 @@ fail =
 
 map : (a -> b) -> Parser a -> Parser b
 map f =
-  flatMap (f >> return)
+  flatMap (return << f)
 
 
 seq2 : Parser a -> Parser b -> (a -> b -> result) -> Parser result
-seq2 pa (Parser pb) f =
+seq2 pa pb f =
   pa
-    |> flatMap (\va -> Parser (\begin source ->
-      case pb begin source of
-        Success end vb ->
-          Success end (f va vb)
-
-        Failed ->
-          Failed
-    ))
+    |> flatMap (\va ->
+      pb
+        |> flatMap (\vb ->
+          return (f va vb)))
 
 
 or : (() -> Parser a) -> Parser a -> Parser a
@@ -153,35 +156,43 @@ notPredicate : Parser a -> Parser ()
 notPredicate (Parser p) =
   Parser (\begin source ->
     case p begin source of
-      Success _ _ -> Failed
-      Failed -> Success begin ()
+      Success _ _ ->
+        Failed
+
+      Failed ->
+        Success begin ()
   )
+
 
 seq3 : Parser a -> Parser b -> Parser c
   -> (a -> b -> c -> result) -> Parser result
 seq3 pa pb pc f =
-  pa
-    |> flatMap (\va ->
-      seq2 pb pc (f va)
-    )
+  let post = seq2 pb pc in
+  pa |> flatMap (post << f)
+
 
 seq4 : Parser a -> Parser b -> Parser c -> Parser d
   -> (a -> b -> c -> d -> result) ->  Parser result
 seq4 pa pb pc pd f =
-  pa
-    |> flatMap (\va ->
-      seq3 pb pc pd (f va)
-    )
+  let post = seq3 pb pc pd in
+  pa |> flatMap (post << f)
 
-consume : String -> Parser ()
-consume str =
+
+seq5 : Parser a -> Parser b -> Parser c -> Parser d -> Parser e
+  -> (a -> b -> c -> d -> e -> result) ->  Parser result
+seq5 pa pb pc pd pe f =
+  let post = seq4 pb pc pd pe in
+  pa |> flatMap (post << f)
+
+
+match : String -> Parser String
+match str =
   Parser (\begin source ->
     let
-      end =
-        begin + String.length str
+      end = begin + String.length str
     in
       if String.slice begin end source == str
-      then Success end ()
+      then Success end str
       else Failed
   )
 
@@ -197,7 +208,7 @@ char predicate =
           |> String.toList
     in
       case target of
-        [] -> Failed -- never happen
+        [] -> Failed
         c :: tl ->
           if predicate c
           then Success end c
@@ -242,3 +253,37 @@ chars8 predicate =
       then Success end value
       else Failed
   )
+
+
+ws : Parser Char
+ws =
+  char (\c -> List.member c wsList)
+
+wsList =
+  [ '\u{0009}'
+  , '\u{000B}'
+  , '\u{000C}'
+  , '\u{0020}'
+  , '\u{00A0}'
+  , '\u{FEFF}'
+  ]
+
+
+wss : Parser String
+wss =
+  chars (\c -> List.member c wsList)
+
+
+
+int : Parser Int
+int =
+  seq2
+  (match "-"
+    |> option
+    |> map (Maybe.withDefault ""))
+  (chars Char.isDigit)
+  (\s n -> s ++ n)
+    |> flatMap (\str ->
+      case String.toInt str of
+        Just i -> return i
+        Nothing -> fail)

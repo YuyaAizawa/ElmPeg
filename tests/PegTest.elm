@@ -10,21 +10,20 @@ suite : Test
 suite =
   describe "Peg.Parser"
     [
-      describe "consume"
+      describe "match"
         [
-        test "match" <|
+        test "ok" <|
           \_ ->
             let str = "ABCDEFG" in
-            str
-              |> consume
+            match str
               |> parse str
-              |> Expect.equal (Just ())
+              |> Expect.equal (Just str)
 
-        , test "unmatch" <|
+        , test "error" <|
           \_ ->
             let str1 = "ABCDEFG" in
             let str2 = "ABCDEF" in
-            consume str1
+            match str1
               |> parse str2
               |> Expect.equal Nothing
         ]
