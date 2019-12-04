@@ -4,29 +4,28 @@ import Expect exposing (Expectation)
 import Test exposing (..)
 
 import Array
-import Peg.Rule as Rule
+import Peg.Parser exposing (..)
 
 suite : Test
 suite =
-  describe "Peg.Rule"
+  describe "Peg.Parser"
     [
-      describe "literal"
+      describe "consume"
         [
         test "match" <|
           \_ ->
             let str = "ABCDEFG" in
             str
-              |> Rule.literal
-              |> Rule.evaluate (str |> String.toList |> Array.fromList) 0
-              |> Expect.equal (str |> String.length |> Just)
+              |> consume
+              |> parse str
+              |> Expect.equal (Just ())
 
         , test "unmatch" <|
           \_ ->
             let str1 = "ABCDEFG" in
             let str2 = "ABCDEF" in
-            str1
-              |> Rule.literal
-              |> Rule.evaluate (str2 |> String.toList |> Array.fromList) 0
+            consume str1
+              |> parse str2
               |> Expect.equal Nothing
         ]
     ]
