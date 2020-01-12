@@ -24,9 +24,6 @@ module Peg.Parser exposing
   , intersperseSeq4
   , intersperseSeq5
   , intersperseSeq6
-  , ws
-  , wss
-  , int
   )
 
 {-| A parser combinator implementation for Persing Expression Grammer (PEG).
@@ -455,37 +452,3 @@ intersperseSeq6 pi pa pb pc pd pe pf fun =
   seq11
   pa pi pb pi pc pi pd pi pe pi pf
   (\a _ b _ c _ d _ e _ f -> fun a b c d e f)
-
-
-ws : Parser Char
-ws =
-  char (\c -> List.member c wsList)
-
-wsList =
-  [ '\u{0009}'
-  , '\u{000B}'
-  , '\u{000C}'
-  , '\u{0020}'
-  , '\u{00A0}'
-  , '\u{FEFF}'
-  ]
-
-
-wss : Parser String
-wss =
-  chars (\c -> List.member c wsList)
-
-
-
-int : Parser Int
-int =
-  seq2
-  (match "-"
-    |> option
-    |> map (Maybe.withDefault ""))
-  (chars Char.isDigit)
-  (\s n -> s ++ n)
-    |> flatMap (\str ->
-      case String.toInt str of
-        Just i -> return i
-        Nothing -> fail)
