@@ -26,13 +26,13 @@ module Peg.Parser exposing
   , intersperseSeq6
   )
 
-{-| A parser combinator implementation for Persing Expression Grammer (PEG).
+{-| A parser combinator implementation for Parsing Expression Grammer (PEG).
 
 # Parse
 @docs Parser, parse
 
 # Parsers
-return, fail, match, char, chars
+@docs return, fail, match, char, chars
 
 # Basic Combinators
 @docs seq2, choice, option, zeroOrMore, oneOrMore, andPredicate, notPredicate
@@ -353,6 +353,7 @@ notPredicate (Parser p) =
   )
 
 
+{-|-}
 seq3 : Parser a -> Parser b -> Parser c
   -> (a -> b -> c -> result) -> Parser result
 seq3 pa pb pc f =
@@ -360,6 +361,7 @@ seq3 pa pb pc f =
   pa |> flatMap (post << f)
 
 
+{-|-}
 seq4 : Parser a -> Parser b -> Parser c -> Parser d
   -> (a -> b -> c -> d -> result) ->  Parser result
 seq4 pa pb pc pd f =
@@ -367,6 +369,7 @@ seq4 pa pb pc pd f =
   pa |> flatMap (post << f)
 
 
+{-|-}
 seq5 : Parser a -> Parser b -> Parser c -> Parser d -> Parser e
   -> (a -> b -> c -> d -> e -> result) ->  Parser result
 seq5 pa pb pc pd pe f =
@@ -374,6 +377,7 @@ seq5 pa pb pc pd pe f =
   pa |> flatMap (post << f)
 
 
+{-|-}
 seq6 : Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser f
   -> (a -> b -> c -> d -> e -> f -> result) ->  Parser result
 seq6 pa pb pc pd pe pf f =
@@ -420,6 +424,7 @@ intersperseSeq2 pi pa pb fun =
   (\a _ b -> fun a b)
 
 
+{-|-}
 intersperseSeq3 : Parser i -> Parser a -> Parser b -> Parser c
   -> (a -> b -> c -> result) -> Parser result
 intersperseSeq3 pi pa pb pc fun =
@@ -428,6 +433,7 @@ intersperseSeq3 pi pa pb pc fun =
   (\a _ b _ c -> fun a b c)
 
 
+{-|-}
 intersperseSeq4 : Parser i -> Parser a -> Parser b -> Parser c -> Parser d
   -> (a -> b -> c -> d -> result) -> Parser result
 intersperseSeq4 pi pa pb pc pd fun =
@@ -436,6 +442,7 @@ intersperseSeq4 pi pa pb pc pd fun =
   (\a _ b _ c _ d -> fun a b c d)
 
 
+{-|-}
 intersperseSeq5 : Parser i -> Parser a -> Parser b -> Parser c -> Parser d
   -> Parser e
   -> (a -> b -> c -> d -> e -> result) -> Parser result
@@ -445,6 +452,7 @@ intersperseSeq5 pi pa pb pc pd pe fun =
   (\a _ b _ c _ d _ e -> fun a b c d e)
 
 
+{-|-}
 intersperseSeq6 : Parser i -> Parser a -> Parser b -> Parser c -> Parser d
   -> Parser e -> Parser f
   -> (a -> b -> c -> d -> e -> f -> result) -> Parser result
