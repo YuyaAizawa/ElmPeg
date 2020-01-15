@@ -15,7 +15,7 @@ numbers =
 minus =
   match "-"
     |> option
-    |> map (Maybe.withDefalut "")
+    |> map (Maybe.withDefault "")
 
 
 -- 2. Combine parsers.
