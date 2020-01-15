@@ -14,7 +14,7 @@ module Peg.Parser exposing
   , andPredicate
   , notPredicate
   , map
-  , flatMap
+  , andThen
   , seq3
   , seq4
   , seq5
@@ -38,7 +38,7 @@ module Peg.Parser exposing
 @docs seq2, choice, option, zeroOrMore, oneOrMore, andPredicate, notPredicate
 
 # Transform
-@docs map, flatMap
+@docs map, andThen
 
 # Sequence Utils
 @docs seq3, seq4, seq5, seq6, intersperseSeq2, intersperseSeq3, intersperseSeq4, intersperseSeq5, intersperseSeq6
@@ -72,7 +72,7 @@ parse source (Parser p) =
 
 
 {-| This `Parser` alway succeeds on parse and results in the given argument
-without consumption.
+without consumption. Typically used with `andThen`.
 -}
 return : a -> Parser a
 return a =
@@ -82,6 +82,7 @@ return a =
 
 
 {-| This `Parser` always fails on parse. It is "mzero" on monad context.
+Typically used with `andThen`.
 -}
 fail : Parser a
 fail =
@@ -185,13 +186,13 @@ conditions for parse success.
 
     intParser =
       chars Char.isDigit
-        |> flatMap (\str ->
+        |> andThen (\str ->
           case String.toInt str of
             Just i -> return i
             Nothing -> fail)
 -}
-flatMap : (a -> Parser b) -> Parser a -> Parser b
-flatMap f (Parser p) =
+andThen : (a -> Parser b) -> Parser a -> Parser b
+andThen f (Parser p) =
   Parser (\begin source ->
     case p begin source of
       Failed ->
@@ -207,7 +208,7 @@ flatMap f (Parser p) =
 -}
 map : (a -> b) -> Parser a -> Parser b
 map f =
-  flatMap (return << f)
+  andThen (return << f)
 
 
 {-| Concatenate two specified parsers, in other words, generate new parser
@@ -218,9 +219,9 @@ accepts the sequence. The result is also merged according to the 3rd parameter.
 seq2 : Parser a -> Parser b -> (a -> b -> result) -> Parser result
 seq2 pa pb f =
   pa
-    |> flatMap (\va ->
+    |> andThen (\va ->
       pb
-        |> flatMap (\vb ->
+        |> andThen (\vb ->
           return (f va vb)))
 
 
@@ -358,7 +359,7 @@ seq3 : Parser a -> Parser b -> Parser c
   -> (a -> b -> c -> result) -> Parser result
 seq3 pa pb pc f =
   let post = seq2 pb pc in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 
 {-|-}
@@ -366,7 +367,7 @@ seq4 : Parser a -> Parser b -> Parser c -> Parser d
   -> (a -> b -> c -> d -> result) ->  Parser result
 seq4 pa pb pc pd f =
   let post = seq3 pb pc pd in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 
 {-|-}
@@ -374,7 +375,7 @@ seq5 : Parser a -> Parser b -> Parser c -> Parser d -> Parser e
   -> (a -> b -> c -> d -> e -> result) ->  Parser result
 seq5 pa pb pc pd pe f =
   let post = seq4 pb pc pd pe in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 
 {-|-}
@@ -382,28 +383,28 @@ seq6 : Parser a -> Parser b -> Parser c -> Parser d -> Parser e -> Parser f
   -> (a -> b -> c -> d -> e -> f -> result) ->  Parser result
 seq6 pa pb pc pd pe pf f =
   let post = seq5 pb pc pd pe pf in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 
 seq7 pa pb pc pd pe pf pg f =
   let post = seq6 pb pc pd pe pf pg in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 seq8 pa pb pc pd pe pf pg ph f =
   let post = seq7 pb pc pd pe pf pg ph in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 seq9 pa pb pc pd pe pf pg ph pi f =
   let post = seq8 pb pc pd pe pf pg ph pi in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 seq10 pa pb pc pd pe pf pg ph pi pj f =
   let post = seq9 pb pc pd pe pf pg ph pi pj in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 seq11 pa pb pc pd pe pf pg ph pi pj pk f =
   let post = seq10 pb pc pd pe pf pg ph pi pj pk in
-  pa |> flatMap (post << f)
+  pa |> andThen (post << f)
 
 
 {-| Concatenate two parsers with a specified parser in between.
