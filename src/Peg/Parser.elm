@@ -248,8 +248,8 @@ to be '() -> Parser' form. (It is useful for avoiding infinite reference.)
 
     p =
         choice
-        [ () -> match "foo"
-        , () -> match "bar"
+        [ \() -> match "foo"
+        , \() -> match "bar"
         ]
     p |> parse "foo" == Just "foo"
     p |> parse "bar" == Just "bar"
@@ -267,11 +267,11 @@ choice list =
 {-| Generate optional parser. It accepts whatever string and consumes only if
 specified parser accepts. The parse result is `Maybe` value.
 
-    option (match "foo") |> parse "bar" == Just Nothing
+    option (match "foo") |> parse "" == Just Nothing
 -}
 option : Parser a -> Parser (Maybe a)
-option =
-    map Just >> or (\() -> return Nothing)
+option p =
+    or (\() -> return Nothing) (map Just p)
 
 
 {-| Generate zero-or-more parser. It accept zero or more consecutive repetitions
@@ -317,7 +317,7 @@ accepts the input and fails if the specified parser rejects, but in either case,
  never consumes any input.
 
     word = chars (always True)
-    p = seq2 (andPredicate (match "A")) word (\_ i -> String.toInt i)
+    p = seq2 (andPredicate (match "A")) (\_ w -> w)
     p |> parse "Apple" == Just "Apple"
     p |> parse "Banana" == Nothing
 -}
@@ -337,9 +337,9 @@ andPredicate (Parser p) =
 rejects the input and fails if the specified parser accepts, but in either case,
  never consumes any input.
 
-    nums = chars Char.isNum
-    p = seq2 (notPredicate (match "0")) nums (\_ i -> String.toInt i)
-    p |> parse "1234" == Just 1234
+    nums = chars Char.isDigit
+    p = seq2 (notPredicate (match "0")) nums (\_ i -> i)
+    p |> parse "1234" == Just "1234"
     p |> parse "0123" == Nothing
 -}
 notPredicate : Parser a -> Parser ()
@@ -410,8 +410,8 @@ seq11 pa pb pc pd pe pf pg ph pi pj pk f =
 {-| Concatenate two parsers with a specified parser in between.
 
     ws = match " " |> oneOrMore
-    varTy = choise [ () -> match "int", () -> match "char" ]
-    varName = char Char.alpha |> oneOrMore
+    varTy = choise [ \() -> match "int", \() -> match "char" ]
+    varName = chars Char.isAlpha
     varDecl =
       intersperseSeq2
       ws varTy varName           -- matches like "int x" or "char  foo"
