@@ -182,4 +182,12 @@ suite =
             |> parse "char  foo"
             |> Expect.equal (Just ( "char", "foo" ))
       ]
+  , describe "join"
+    [ test "ok" <|
+      \_ ->
+        chars Char.isAlpha
+          |> join (match ", ")
+          |> parse "foo, bar, baz"
+          |> Expect.equal (Just ["foo", "bar", "baz"])
+    ]
   ]
