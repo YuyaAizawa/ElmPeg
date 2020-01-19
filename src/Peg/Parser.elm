@@ -24,6 +24,7 @@ module Peg.Parser exposing
   , intersperseSeq4
   , intersperseSeq5
   , intersperseSeq6
+  , join
   )
 
 {-| A parser combinator implementation for Parsing Expression Grammer (PEG).
@@ -41,7 +42,7 @@ module Peg.Parser exposing
 @docs map, andThen
 
 # Sequence Utils
-@docs seq3, seq4, seq5, seq6, intersperseSeq2, intersperseSeq3, intersperseSeq4, intersperseSeq5, intersperseSeq6
+@docs seq3, seq4, seq5, seq6, intersperseSeq2, intersperseSeq3, intersperseSeq4, intersperseSeq5, intersperseSeq6, join
 
 -}
 
@@ -461,3 +462,22 @@ intersperseSeq6 pi pa pb pc pd pe pf fun =
   seq11
   pa pi pb pi pc pi pd pi pe pi pf
   (\a _ b _ c _ d _ e _ f -> fun a b c d e f)
+
+
+{-| Generate one-or-more parser with a specified parser in between.
+
+    chars Char.isAlpha
+      |> join (match ", ")
+      |> parse "foo, bar, baz" -- == ["foo", "bar", "baz"]
+-}
+join : Parser i -> Parser a -> Parser (List a)
+join pi pa =
+  seq2
+  pa
+  (zeroOrMore (
+    seq2
+    pi
+    pa
+    (\_ a -> a)
+  ))
+  (\hd tl -> hd :: tl)
