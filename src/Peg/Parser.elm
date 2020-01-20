@@ -226,7 +226,7 @@ seq2 pa pb f =
           return (f va vb)))
 
 
-or : (() -> Parser a) -> Parser a -> Parser a
+or : Parser a -> Parser a -> Parser a
 or next (Parser this) =
   Parser (\begin source ->
     let
@@ -235,7 +235,7 @@ or next (Parser this) =
     in
       case result of
         Failed ->
-          let (Parser next_) = next () in
+          let (Parser next_) = next in
           next_ begin source
 
         _ ->
@@ -257,12 +257,11 @@ to be '() -> Parser' form. (It is useful for avoiding infinite reference.)
 -}
 choice : List (() -> Parser a) -> Parser a
 choice list =
-  case list of
-    [] ->
-      fail
+  List.foldl or fail (list |> List.map lazy)
 
-    hd :: tl ->
-      List.foldl or (hd ()) tl
+lazy : (() -> Parser a) -> Parser a
+lazy thunk =
+  andThen thunk (return ())
 
 
 {-| Generate optional parser. It accepts whatever string and consumes only if
@@ -272,7 +271,7 @@ specified parser accepts. The parse result is `Maybe` value.
 -}
 option : Parser a -> Parser (Maybe a)
 option p =
-    or (\() -> return Nothing) (map Just p)
+    or (return Nothing) (map Just p)
 
 
 {-| Generate zero-or-more parser. It accept zero or more consecutive repetitions
