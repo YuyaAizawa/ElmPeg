@@ -3,7 +3,7 @@
     "name": "YuyaAizawa/peg",
     "summary": "Parser combinator implementation for Persing Expression Grammer (PEG)",
     "license": "BSD-3-Clause",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "exposed-modules": [
         "Peg.Parser"
     ],
@@ -12,7 +12,7 @@
         "elm/core": "1.0.2 <= v < 2.0.0"
     },
     "test-dependencies": {
-        "elm-explorations/test": "1.2.2 <= v < 2.0.0",
-        "elm/random": "1.0.0 <= v < 2.0.0"
+        "elm/random": "1.0.0 <= v < 2.0.0",
+        "elm-explorations/test": "1.2.2 <= v < 2.0.0"
     }
 }
