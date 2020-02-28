@@ -161,6 +161,15 @@ suite =
           p |> parse "0123"
             |> Expect.equal Nothing
       ]
+  , describe "withPosition"
+    [ test "match" <|
+      \_ ->
+        let str = "abc" in
+        match str
+          |> withPosition
+          |> parse str
+          |> Expect.equal (Just ( str, { begin = 0, end = 3 } ))
+    ]
   , let
       ws = match " " |> oneOrMore
       varTy = choice [ \() -> match "int", \() -> match "char" ]

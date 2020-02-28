@@ -1,5 +1,6 @@
 module Peg.Parser exposing
   ( Parser
+  , Position
   , parse
   , return
   , fail
@@ -15,6 +16,7 @@ module Peg.Parser exposing
   , notPredicate
   , map
   , andThen
+  , withPosition
   , seq3
   , seq4
   , seq5
@@ -41,6 +43,9 @@ module Peg.Parser exposing
 # Transform
 @docs map, andThen
 
+# Position
+@docs Position, withPosition
+
 # Sequence Utils
 @docs seq3, seq4, seq5, seq6, intersperseSeq2, intersperseSeq3, intersperseSeq4, intersperseSeq5, intersperseSeq6, join
 
@@ -50,6 +55,12 @@ module Peg.Parser exposing
 converts it into Elm object when accepted. -}
 type Parser a
   = Parser (Int -> String -> ParseResult a)
+
+{-| Parsed posision in sourse string. -}
+type alias Position =
+  { begin : Int
+  , end : Int
+  }
 
 type ParseResult a
   = Success Int a
@@ -353,6 +364,23 @@ notPredicate (Parser p) =
         Success begin ()
   )
 
+
+{-| Generate parser returns result with position. Begin value is inclusive, end
+value is exclusive.
+
+    parse "abc" (match "abc" |> withPosition)
+      == Just ( "abc", { begin = 0, end = 3 } )
+-}
+withPosition : Parser a -> Parser ( a, Position )
+withPosition (Parser p) =
+  Parser (\begin source ->
+    case p begin source of
+      Success end result ->
+        Success end ( result, { begin = begin, end = end } )
+
+      Failed ->
+        Failed
+  )
 
 {-|-}
 seq3 : Parser a -> Parser b -> Parser c
