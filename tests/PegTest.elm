@@ -199,4 +199,53 @@ suite =
           |> parse "foo, bar, baz"
           |> Expect.equal (Just ["foo", "bar", "baz"])
     ]
+  , describe "infixl1"
+    [ test "add" <|
+      \_ ->
+        let
+          nat =
+            chars Char.isDigit
+              |> andThen (\num ->
+                case String.toInt num of
+                  Just i -> return i
+                  Nothing -> fail)
+
+          add =
+            nat
+              |> infixl (match "+" |> map (always (+)))
+        in
+          add
+            |> parse "1+2+3"
+            |> Expect.equal (Just 6)
+
+    , test "add sub mul div" <|
+      \_ ->
+        let
+          nat =
+            chars Char.isDigit
+              |> andThen (\num ->
+                case String.toInt num of
+                  Just i -> return i
+                  Nothing -> fail)
+
+          muldiv =
+            nat
+              |> infixl (
+                choice
+                [ \_ -> match "*" |> map (always (*))
+                , \_ -> match "/" |> map (always (//))
+                ])
+
+          addsub =
+            muldiv
+              |> infixl (
+                choice
+                [ \_ -> match "+" |> map (always (+))
+                , \_ -> match "-" |> map (always (-))
+                ])
+        in
+          addsub
+            |> parse "1+2*4-5+6/2"
+            |> Expect.equal (Just 7)
+    ]
   ]
