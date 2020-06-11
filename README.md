@@ -1,5 +1,5 @@
 # PEG for Elm
-A parser combinator implementation for [Parsing Expression Grammer](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG).
+A parser combinator implementation for [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) (PEG).
 
 ## Usage
 1. Make base parser.

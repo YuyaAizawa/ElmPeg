@@ -1,5 +1,6 @@
 module Peg.Parser exposing
   ( Parser
+  , Position
   , parse
   , return
   , fail
@@ -15,6 +16,7 @@ module Peg.Parser exposing
   , notPredicate
   , map
   , andThen
+  , withPosition
   , seq3
   , seq4
   , seq5
@@ -25,6 +27,8 @@ module Peg.Parser exposing
   , intersperseSeq5
   , intersperseSeq6
   , join
+  , infixl
+  , infixr
   )
 
 {-| A parser combinator implementation for Parsing Expression Grammer (PEG).
@@ -41,8 +45,12 @@ module Peg.Parser exposing
 # Transform
 @docs map, andThen
 
+# Position
+@docs Position, withPosition
+
 # Sequence Utils
-@docs seq3, seq4, seq5, seq6, intersperseSeq2, intersperseSeq3, intersperseSeq4, intersperseSeq5, intersperseSeq6, join
+@docs seq3, seq4, seq5, seq6, intersperseSeq2, intersperseSeq3, intersperseSeq4,
+intersperseSeq5, intersperseSeq6, join, infixl, infixr
 
 -}
 
@@ -51,6 +59,12 @@ converts it into Elm object when accepted. -}
 type Parser a
   = Parser (Int -> String -> ParseResult a)
 
+{-| Parsed posision in sourse string. -}
+type alias Position =
+  { begin : Int
+  , end : Int
+  }
+
 type ParseResult a
   = Success Int a
   | Failed
@@ -58,8 +72,8 @@ type ParseResult a
 {-| Parse the given string and return the result. It returns `Just` value when
 the string is accepted, `Nothing` otherwise.
 
-    parse "abc" (match "abc") == Just "abc"
-    parse "xyz" (match "abc") == Nothing
+    parse "abc" (match "abc") -- Just "abc"
+    parse "xyz" (match "abc") -- Nothing
 -}
 parse : String -> Parser a -> Maybe a
 parse source (Parser p) =
@@ -95,8 +109,8 @@ fail =
 {-| Generate the parser accepts the specified string. The parser returns the same
 string when accepts.
 
-    parse "abc" (match "abc") == Just "abc"
-    parse "xyz" (match "abc") == Nothing
+    parse "abc" (match "abc") -- Just "abc"
+    parse "xyz" (match "abc") -- Nothing
 -}
 match : String -> Parser String
 match str =
@@ -113,8 +127,8 @@ match str =
 {-| Generate the parser accepts characters satisfied with the specified
 predicator. The parser returns the specified character when accepted.
 
-    char Char.isUpper |> parse "A"  == Just 'A'
-    char Char.isUpper |> parse "a"  == Nothing
+    char Char.isUpper |> parse "A"  -- Just 'A'
+    char Char.isUpper |> parse "a"  -- Nothing
 -}
 char : (Char -> Bool) -> Parser Char
 char predicate =
@@ -138,8 +152,8 @@ char predicate =
 {-| Generate the parser accepts consecutive characters satisfied with the
 specified predicator. The parser returns the string when accepted.
 
-    char Char.isUpper |> parse "AAA"  == Just "AAA"
-    char Char.isUpper |> parse "aaa"  == Nothing
+    char Char.isUpper |> parse "AAA"  -- Just "AAA"
+    char Char.isUpper |> parse "aaa"  -- Nothing
 -}
 chars : (Char -> Bool) -> Parser String
 chars predicate =
@@ -215,7 +229,7 @@ map f =
 {-| Concatenate two specified parsers, in other words, generate new parser
 accepts the sequence. The result is also merged according to the 3rd parameter.
 
-    seq2 (match "con") (match "cat") (++) |> parse "concat" == Just "concat"
+    seq2 (match "con") (match "cat") (++) |> parse "concat" -- Just "concat"
 -}
 seq2 : Parser a -> Parser b -> (a -> b -> result) -> Parser result
 seq2 pa pb f =
@@ -252,8 +266,8 @@ to be '() -> Parser' form. (It is useful for avoiding infinite reference.)
         [ \() -> match "foo"
         , \() -> match "bar"
         ]
-    p |> parse "foo" == Just "foo"
-    p |> parse "bar" == Just "bar"
+    p |> parse "foo" -- Just "foo"
+    p |> parse "bar" -- Just "bar"
 -}
 choice : List (() -> Parser a) -> Parser a
 choice list =
@@ -267,7 +281,7 @@ lazy thunk =
 {-| Generate optional parser. It accepts whatever string and consumes only if
 specified parser accepts. The parse result is `Maybe` value.
 
-    option (match "foo") |> parse "" == Just Nothing
+    option (match "foo") |> parse "" -- Just Nothing
 -}
 option : Parser a -> Parser (Maybe a)
 option p =
@@ -279,8 +293,8 @@ of string specified parser accepts. it always behaves greedily, consuming as
 much input as possible.
 
     p = zeroOrMore (match "a")
-    p |> parse "aaa" == Just ["a", "a", "a"]
-    p |> parse "" == Just []
+    p |> parse "aaa" -- Just ["a", "a", "a"]
+    p |> parse ""    -- Just []
 -}
 zeroOrMore : Parser a -> Parser (List a)
 zeroOrMore (Parser p) =
@@ -304,8 +318,8 @@ of string specified parser accepts. it always behaves greedily, consuming as
 much input as possible.
 
     p = oneOrMore (match "a")
-    p |> parse "aaa" == Just ["a", "a", "a"]
-    p |> parse "" == Nothing
+    p |> parse "aaa" -- Just ["a", "a", "a"]
+    p |> parse ""    -- Nothing
 -}
 oneOrMore : Parser a -> Parser (List a)
 oneOrMore p =
@@ -318,8 +332,8 @@ accepts the input and fails if the specified parser rejects, but in either case,
 
     word = chars (always True)
     p = seq2 (andPredicate (match "A")) (\_ w -> w)
-    p |> parse "Apple" == Just "Apple"
-    p |> parse "Banana" == Nothing
+    p |> parse "Apple"  -- Just "Apple"
+    p |> parse "Banana" -- Nothing
 -}
 andPredicate : Parser a -> Parser ()
 andPredicate (Parser p) =
@@ -339,8 +353,8 @@ rejects the input and fails if the specified parser accepts, but in either case,
 
     nums = chars Char.isDigit
     p = seq2 (notPredicate (match "0")) nums (\_ i -> i)
-    p |> parse "1234" == Just "1234"
-    p |> parse "0123" == Nothing
+    p |> parse "1234" -- Just "1234"
+    p |> parse "0123" -- Nothing
 -}
 notPredicate : Parser a -> Parser ()
 notPredicate (Parser p) =
@@ -353,6 +367,23 @@ notPredicate (Parser p) =
         Success begin ()
   )
 
+
+{-| Generate parser returns result with position. Begin value is inclusive, end
+value is exclusive.
+
+    parse "abc" (match "abc" |> withPosition)
+      -- Just ( "abc", { begin = 0, end = 3 } )
+-}
+withPosition : Parser a -> Parser ( a, Position )
+withPosition (Parser p) =
+  Parser (\begin source ->
+    case p begin source of
+      Success end result ->
+        Success end ( result, { begin = begin, end = end } )
+
+      Failed ->
+        Failed
+  )
 
 {-|-}
 seq3 : Parser a -> Parser b -> Parser c
@@ -467,7 +498,7 @@ intersperseSeq6 pi pa pb pc pd pe pf fun =
 
     chars Char.isAlpha
       |> join (match ", ")
-      |> parse "foo, bar, baz" -- == ["foo", "bar", "baz"]
+      |> parse "foo, bar, baz" -- Just ["foo", "bar", "baz"]
 -}
 join : Parser i -> Parser a -> Parser (List a)
 join pi pa =
@@ -480,3 +511,65 @@ join pi pa =
     (\_ a -> a)
   ))
   (\hd tl -> hd :: tl)
+
+
+{-| Generate parser parses left infix operator. The first argument is for operator,
+and the second is for term.
+
+This is the four arithmetic operations sample.
+
+    let
+      nat =
+        chars Char.isDigit
+          |> andThen (\num ->
+            case String.toInt num of
+              Just i -> return i
+              Nothing -> fail)
+
+      muldiv =
+        nat
+          |> infixl (
+            choice
+            [ \_ -> match "*" |> map (always (*))
+            , \_ -> match "/" |> map (always (//))
+            ])
+
+      addsub =
+        muldiv
+          |> infixl (
+            choice
+            [ \_ -> match "+" |> map (always (+))
+            , \_ -> match "-" |> map (always (-))
+            ])
+    in
+      addsub
+        |> parse "1+2*4-5+6/2" -- Just 7
+
+-}
+infixl : Parser (a -> a -> a) -> Parser a -> Parser a
+infixl pOp pTerm =
+  seq2
+  pTerm
+  (zeroOrMore (
+    seq2
+    pOp
+    pTerm
+    (\op r -> (\l -> op l r))
+  ))
+  (List.foldl (<|))
+
+
+{-| Generate parser parses right infix operator. The first argument is for operator,
+and the second is for term.
+-}
+infixr : Parser (a -> a -> a) -> Parser a -> Parser a
+infixr pOp pTerm =
+  seq2
+  (zeroOrMore (
+    seq2
+    pTerm
+    pOp
+    (|>)
+  ))
+  pTerm
+  (\hds tl -> List.foldr (<|) tl hds)
